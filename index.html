@@ -117,6 +117,7 @@
   <!-- Navigation -->
   <div class="record-nav">
     <button class="btn-nav prev" id="btn-prev" onclick="prevQuestion()" style="visibility:hidden">← 前へ</button>
+    <button class="btn-nav home" onclick="if(confirm('録音を中断してホームに戻りますか？')) { if('speechSynthesis' in window) speechSynthesis.cancel(); navigateTo('home'); initHome(); }">🏠 ホーム</button>
     <button class="btn-nav next" id="btn-next" onclick="nextQuestion()" disabled>次へ →</button>
   </div>
 </div>

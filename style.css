@@ -435,6 +435,14 @@ html, body {
 .btn-nav.next:hover { box-shadow: 0 6px 20px rgba(107, 92, 231, 0.45); }
 .btn-nav.next:disabled { opacity: 0.4; cursor: not-allowed; }
 
+.btn-nav.home {
+  background: var(--bg);
+  color: var(--text-sub);
+  border: 1px solid var(--border);
+  font-size: 0.85rem;
+}
+.btn-nav.home:hover { border-color: var(--danger); color: var(--danger); }
+
 /* ── Complete Screen ──────────────────────────────────────────────────────── */
 .complete-body {
   flex: 1;
