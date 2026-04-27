@@ -93,6 +93,11 @@ function renderQuestion() {
   document.getElementById('question-text').textContent = q.question;
   document.getElementById('hint-text').textContent = q.hint;
 
+  // Stop any ongoing speech
+  if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+  const speakBtn = document.getElementById('btn-speak');
+  if (speakBtn) speakBtn.classList.remove('speaking');
+
   // Reset recording UI
   resetRecordingUI();
 
@@ -526,6 +531,63 @@ function formatDate(d) {
 
 function formatTime(d) {
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
+// ── Text-to-Speech ────────────────────────────────────────────────────────────
+function speakQuestion() {
+  if (!('speechSynthesis' in window)) {
+    alert('このブラウザは音声読み上げに対応していません。');
+    return;
+  }
+
+  const btn = document.getElementById('btn-speak');
+
+  // 再生中なら停止
+  if (window.speechSynthesis.speaking) {
+    window.speechSynthesis.cancel();
+    btn.classList.remove('speaking');
+    return;
+  }
+
+  const q = state.sessionQuestions[state.currentIndex];
+  const utterance = new SpeechSynthesisUtterance(q.question);
+  utterance.lang = 'ja-JP';
+  utterance.rate = 0.95;
+  utterance.pitch = 1.1;
+
+  // 女性の声を選択
+  const setVoice = () => {
+    const voices = window.speechSynthesis.getVoices();
+    const femaleVoice = voices.find(v =>
+      v.lang === 'ja-JP' && (
+        v.name.includes('Kyoko') ||
+        v.name.includes('O-Ren') ||
+        v.name.includes('Otoya') === false &&
+        v.name.includes('female') ||
+        v.name.includes('Female') ||
+        v.name.toLowerCase().includes('haruka') ||
+        v.name.toLowerCase().includes('nanami') ||
+        v.name.toLowerCase().includes('ayumi') ||
+        v.name.toLowerCase().includes('mizuki')
+      )
+    ) || voices.find(v => v.lang === 'ja-JP' && !v.name.includes('Male'))
+      || voices.find(v => v.lang === 'ja-JP')
+      || voices.find(v => v.lang.startsWith('ja'));
+
+    if (femaleVoice) utterance.voice = femaleVoice;
+  };
+
+  if (window.speechSynthesis.getVoices().length > 0) {
+    setVoice();
+  } else {
+    window.speechSynthesis.onvoiceschanged = setVoice;
+  }
+
+  utterance.onstart = () => btn.classList.add('speaking');
+  utterance.onend = () => btn.classList.remove('speaking');
+  utterance.onerror = () => btn.classList.remove('speaking');
+
+  window.speechSynthesis.speak(utterance);
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────────

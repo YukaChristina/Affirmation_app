@@ -218,6 +218,39 @@ html, body {
   color: var(--text);
 }
 
+.question-text-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.question-text-row .question-text {
+  flex: 1;
+}
+
+.btn-speak {
+  flex-shrink: 0;
+  background: rgba(107, 92, 231, 0.1);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 4px;
+}
+
+.btn-speak:hover { background: rgba(107, 92, 231, 0.2); }
+.btn-speak.speaking {
+  background: var(--purple);
+  border-color: var(--purple);
+  animation: pulseShadow 1.2s infinite;
+}
+
 .hint-box {
   background: white;
   border: 1px solid var(--border);
@@ -235,10 +268,9 @@ html, body {
 }
 
 .hint-text {
-  font-size: 0.9rem;
+  font-size: 1.05rem;
   color: var(--text-sub);
-  line-height: 1.65;
-  font-style: italic;
+  line-height: 1.75;
 }
 
 /* Recording panel */
