@@ -274,6 +274,36 @@ html, body {
   font-weight: 500;
 }
 
+/* Question browse nav */
+.question-browse-nav {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.btn-browse {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-sub);
+  font-size: 0.8rem;
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.btn-browse:hover:not(:disabled) { border-color: var(--purple); color: var(--purple); }
+.btn-browse:disabled { opacity: 0.3; cursor: not-allowed; }
+
+.browse-count {
+  font-size: 0.8rem;
+  color: var(--text-sub);
+  min-width: 40px;
+  text-align: center;
+}
+
 /* Recording panel */
 .recording-panel {
   padding: 32px 28px;

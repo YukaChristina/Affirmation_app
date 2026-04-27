@@ -101,10 +101,15 @@ function renderQuestion() {
   // Reset recording UI
   resetRecordingUI();
 
-  // Show/hide nav buttons
+  // Show/hide bottom nav buttons
   document.getElementById('btn-prev').style.visibility = idx > 0 ? 'visible' : 'hidden';
   document.getElementById('btn-next').textContent = idx === total - 1 ? '完了' : '次へ →';
   document.getElementById('btn-next').disabled = !state.recordings[q.id];
+
+  // Browse nav in question panel
+  document.getElementById('browse-count').textContent = `${idx + 1} / ${total}`;
+  document.getElementById('btn-browse-prev').disabled = idx === 0;
+  document.getElementById('btn-browse-next').disabled = idx === total - 1;
 
   // If there's already a recording for this question
   if (state.recordings[q.id]) {
@@ -234,6 +239,14 @@ function deleteCurrentRecording() {
   delete state.recordings[q.id];
   resetRecordingUI();
   document.getElementById('btn-next').disabled = true;
+}
+
+function browseQuestion(dir) {
+  const newIndex = state.currentIndex + dir;
+  if (newIndex >= 0 && newIndex < state.sessionQuestions.length) {
+    state.currentIndex = newIndex;
+    renderQuestion();
+  }
 }
 
 function prevQuestion() {
