@@ -307,7 +307,7 @@ async function startPlaybackMode() {
 
   // Rebuild question list from saved session
   state.playbackQuestions = (last.questionIds || last.completedQuestions)
-    .map(id => QUESTIONS.find(q => q.id === id))
+    .map(id => getQuestions().find(q => q.id === id))
     .filter(Boolean);
 
   navigateTo('play');
@@ -506,7 +506,7 @@ function renderSessionList(sessions) {
         <p class="detail-count">回答した質問：${session.completedQuestions.length}問</p>
         <div class="detail-questions">
           ${session.completedQuestions.map(id => {
-            const q = QUESTIONS.find(q => q.id === id);
+            const q = getQuestions().find(q => q.id === id);
             return q ? `<span class="detail-q">${q.sectionName}: ${q.question.slice(0, 20)}...</span>` : '';
           }).join('')}
         </div>
@@ -627,6 +627,122 @@ function speakQuestion() {
   } else {
     window.speechSynthesis.onvoiceschanged = applyVoice;
   }
+}
+
+// ── Question Manager ─────────────────────────────────────────────────────────
+const SECTION_NAMES = {
+  'PART 1': '成功の理由について',
+  'PART 2': '今の気分・生き方について',
+  'PART 3': '過去の自分へ',
+};
+
+let _editingIndex = null;
+
+function showQuestionManager() {
+  navigateTo('qmgr');
+  renderQuestionManager();
+}
+
+function renderQuestionManager() {
+  const questions = getQuestions();
+  const container = document.getElementById('question-list-mgr');
+  container.innerHTML = '';
+
+  questions.forEach((q, idx) => {
+    const item = document.createElement('div');
+    item.className = 'qmgr-item';
+    item.innerHTML = `
+      <div class="qmgr-item-top">
+        <span class="qmgr-num">${idx + 1}</span>
+        <span class="badge badge-section">${q.section}</span>
+      </div>
+      <p class="qmgr-q-text">${q.question}</p>
+      <div class="qmgr-actions">
+        <button class="btn-qmgr-edit" onclick="openQuestionModal(${idx})">✏️ 編集</button>
+        <button class="btn-qmgr-delete" onclick="confirmDeleteQuestion(${idx})">🗑 削除</button>
+      </div>
+    `;
+    container.appendChild(item);
+  });
+
+  const isCustom = !!localStorage.getItem('affirmation_custom_questions');
+  document.getElementById('qmgr-reset-btn').style.display = isCustom ? 'inline-block' : 'none';
+}
+
+function openQuestionModal(idx) {
+  _editingIndex = idx;
+  const isNew = idx === null;
+  document.getElementById('modal-title').textContent = isNew ? '質問を追加' : '質問を編集';
+
+  if (!isNew) {
+    const q = getQuestions()[idx];
+    document.getElementById('modal-section').value = q.section;
+    document.getElementById('modal-question-text').value = q.question;
+    document.getElementById('modal-hint-text').value = q.hint;
+  } else {
+    document.getElementById('modal-section').value = 'PART 2';
+    document.getElementById('modal-question-text').value = '';
+    document.getElementById('modal-hint-text').value = '';
+  }
+
+  document.getElementById('modal-question').style.display = 'flex';
+  document.getElementById('modal-question-text').focus();
+}
+
+function closeQuestionModal() {
+  document.getElementById('modal-question').style.display = 'none';
+  _editingIndex = null;
+}
+
+function saveQuestion() {
+  const section = document.getElementById('modal-section').value;
+  const questionText = document.getElementById('modal-question-text').value.trim();
+  const hintText = document.getElementById('modal-hint-text').value.trim();
+
+  if (!questionText) {
+    alert('質問文を入力してください。');
+    return;
+  }
+
+  const questions = getQuestions().slice();
+
+  if (_editingIndex === null) {
+    questions.push({
+      id: 'cq' + Date.now(),
+      section,
+      sectionName: SECTION_NAMES[section],
+      type: 'required',
+      question: questionText,
+      hint: hintText,
+    });
+  } else {
+    questions[_editingIndex] = {
+      ...questions[_editingIndex],
+      section,
+      sectionName: SECTION_NAMES[section],
+      question: questionText,
+      hint: hintText,
+    };
+  }
+
+  saveCustomQuestions(questions);
+  closeQuestionModal();
+  renderQuestionManager();
+}
+
+function confirmDeleteQuestion(idx) {
+  const q = getQuestions()[idx];
+  if (!confirm(`この質問を削除しますか？\n\n「${q.question}」`)) return;
+  const questions = getQuestions().slice();
+  questions.splice(idx, 1);
+  saveCustomQuestions(questions);
+  renderQuestionManager();
+}
+
+function resetToDefaultQuestions() {
+  if (!confirm('すべての変更を破棄して、デフォルトの質問に戻しますか？')) return;
+  resetCustomQuestions();
+  renderQuestionManager();
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────────

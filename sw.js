@@ -1,4 +1,4 @@
-const CACHE_NAME = 'affirmation-v6';
+const CACHE_NAME = 'affirmation-v7';
 const STATIC_ASSETS = [
   '/',
   '/index.html',

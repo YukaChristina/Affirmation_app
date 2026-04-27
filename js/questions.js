@@ -61,6 +61,25 @@ const QUESTIONS = [
   }
 ];
 
-function selectSessionQuestions() {
+function getQuestions() {
+  try {
+    const saved = localStorage.getItem('affirmation_custom_questions');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch (e) {}
   return QUESTIONS;
+}
+
+function saveCustomQuestions(qs) {
+  localStorage.setItem('affirmation_custom_questions', JSON.stringify(qs));
+}
+
+function resetCustomQuestions() {
+  localStorage.removeItem('affirmation_custom_questions');
+}
+
+function selectSessionQuestions() {
+  return getQuestions();
 }

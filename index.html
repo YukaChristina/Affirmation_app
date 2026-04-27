@@ -46,7 +46,10 @@
       </div>
     </div>
 
-    <button class="btn-history" onclick="showHistory()">📅 記録・履歴を見る</button>
+    <div class="home-bottom-actions">
+      <button class="btn-history" onclick="showHistory()">📅 記録・履歴を見る</button>
+      <button class="btn-history" onclick="showQuestionManager()">⚙️ 質問管理</button>
+    </div>
   </div>
 </div>
 
@@ -211,6 +214,55 @@
     <div class="history-card">
       <h3>セッション一覧</h3>
       <div id="session-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════ QUESTION MANAGER SCREEN ══ -->
+<div id="screen-qmgr" class="screen">
+  <header class="app-header">
+    <div>
+      <h1>⚙️ 質問管理</h1>
+      <div class="header-sub">質問の追加・編集・削除</div>
+    </div>
+    <button class="btn-icon" onclick="navigateTo('home'); initHome();">ホーム</button>
+  </header>
+
+  <div class="qmgr-body">
+    <div class="qmgr-toolbar">
+      <p class="qmgr-desc">変更はすぐに録音モードに反映されます。</p>
+      <button class="btn-qmgr-add" onclick="openQuestionModal(null)">＋ 質問を追加</button>
+    </div>
+    <div id="question-list-mgr"></div>
+    <div class="qmgr-reset-area">
+      <button id="qmgr-reset-btn" class="btn-reset-questions" onclick="resetToDefaultQuestions()" style="display:none">🔄 デフォルトに戻す</button>
+    </div>
+  </div>
+</div>
+
+<!-- Question Edit Modal -->
+<div id="modal-question" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeQuestionModal()">
+  <div class="modal-box">
+    <h3 id="modal-title">質問を編集</h3>
+    <div class="modal-field">
+      <label>セクション</label>
+      <select id="modal-section">
+        <option value="PART 1">PART 1 ─ 成功の理由について</option>
+        <option value="PART 2">PART 2 ─ 今の気分・生き方について</option>
+        <option value="PART 3">PART 3 ─ 過去の自分へ</option>
+      </select>
+    </div>
+    <div class="modal-field">
+      <label>質問文</label>
+      <textarea id="modal-question-text" rows="3" placeholder="質問を入力してください..."></textarea>
+    </div>
+    <div class="modal-field">
+      <label>回答例（参考）</label>
+      <textarea id="modal-hint-text" rows="5" placeholder="回答例を入力してください..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-modal-cancel" onclick="closeQuestionModal()">キャンセル</button>
+      <button class="btn-modal-save" onclick="saveQuestion()">保存</button>
     </div>
   </div>
 </div>
