@@ -534,6 +534,50 @@ function formatTime(d) {
 }
 
 // ── Text-to-Speech ────────────────────────────────────────────────────────────
+// 女性の自然な声を優先度順に選択
+function selectBestFemaleVoice(voices) {
+  const ja = voices.filter(v => v.lang === 'ja-JP' || v.lang === 'ja');
+
+  // 優先度1: Google の日本語音声（Chromeで最も自然）
+  const google = ja.find(v => v.name === 'Google 日本語' || v.name === 'Google Japanese');
+  if (google) return google;
+
+  // 優先度2: Microsoft のニューラル女性音声（Edge/Windowsで最も自然）
+  const msNatural = ja.find(v =>
+    v.name.includes('Natural') &&
+    (v.name.includes('Nanami') || v.name.includes('Aoi') ||
+     v.name.includes('Mayu') || v.name.includes('Shiori'))
+  );
+  if (msNatural) return msNatural;
+
+  // 優先度3: Microsoft オンライン女性音声
+  const msOnline = ja.find(v =>
+    v.name.includes('Online') &&
+    !v.name.includes('Keita') && !v.name.includes('Ichiro')
+  );
+  if (msOnline) return msOnline;
+
+  // 優先度4: Kyoko / Ren（macOS標準女性音声）
+  const mac = ja.find(v => v.name.includes('Kyoko') || v.name.includes('O-Ren'));
+  if (mac) return mac;
+
+  // 優先度5: 名前で女性らしいもの（Nanami, Mizuki, Ayumi, Haruka）
+  const namedFemale = ja.find(v =>
+    ['nanami','mizuki','ayumi','haruka','aoi','mayu','shiori'].some(n =>
+      v.name.toLowerCase().includes(n)
+    )
+  );
+  if (namedFemale) return namedFemale;
+
+  // 優先度6: 男性名を避けた日本語音声
+  const notMale = ja.find(v =>
+    !['keita','ichiro','otoya','male'].some(n => v.name.toLowerCase().includes(n))
+  );
+  if (notMale) return notMale;
+
+  return ja[0] || null;
+}
+
 function speakQuestion() {
   if (!('speechSynthesis' in window)) {
     alert('このブラウザは音声読み上げに対応していません。');
@@ -542,7 +586,6 @@ function speakQuestion() {
 
   const btn = document.getElementById('btn-speak');
 
-  // 再生中なら停止
   if (window.speechSynthesis.speaking) {
     window.speechSynthesis.cancel();
     btn.classList.remove('speaking');
@@ -552,42 +595,25 @@ function speakQuestion() {
   const q = state.sessionQuestions[state.currentIndex];
   const utterance = new SpeechSynthesisUtterance(q.question);
   utterance.lang = 'ja-JP';
-  utterance.rate = 0.95;
-  utterance.pitch = 1.1;
+  utterance.rate = 0.88;   // ゆっくりめで聞き取りやすく
+  utterance.pitch = 1.05;  // 自然なピッチ
+  utterance.volume = 1.0;
 
-  // 女性の声を選択
-  const setVoice = () => {
-    const voices = window.speechSynthesis.getVoices();
-    const femaleVoice = voices.find(v =>
-      v.lang === 'ja-JP' && (
-        v.name.includes('Kyoko') ||
-        v.name.includes('O-Ren') ||
-        v.name.includes('Otoya') === false &&
-        v.name.includes('female') ||
-        v.name.includes('Female') ||
-        v.name.toLowerCase().includes('haruka') ||
-        v.name.toLowerCase().includes('nanami') ||
-        v.name.toLowerCase().includes('ayumi') ||
-        v.name.toLowerCase().includes('mizuki')
-      )
-    ) || voices.find(v => v.lang === 'ja-JP' && !v.name.includes('Male'))
-      || voices.find(v => v.lang === 'ja-JP')
-      || voices.find(v => v.lang.startsWith('ja'));
-
-    if (femaleVoice) utterance.voice = femaleVoice;
+  const applyVoice = () => {
+    const voice = selectBestFemaleVoice(window.speechSynthesis.getVoices());
+    if (voice) utterance.voice = voice;
+    utterance.onstart = () => btn.classList.add('speaking');
+    utterance.onend   = () => btn.classList.remove('speaking');
+    utterance.onerror = () => btn.classList.remove('speaking');
+    window.speechSynthesis.speak(utterance);
   };
 
-  if (window.speechSynthesis.getVoices().length > 0) {
-    setVoice();
+  const voices = window.speechSynthesis.getVoices();
+  if (voices.length > 0) {
+    applyVoice();
   } else {
-    window.speechSynthesis.onvoiceschanged = setVoice;
+    window.speechSynthesis.onvoiceschanged = applyVoice;
   }
-
-  utterance.onstart = () => btn.classList.add('speaking');
-  utterance.onend = () => btn.classList.remove('speaking');
-  utterance.onerror = () => btn.classList.remove('speaking');
-
-  window.speechSynthesis.speak(utterance);
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────────
