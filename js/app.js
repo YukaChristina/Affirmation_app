@@ -636,9 +636,16 @@ function speakQuestion() {
 // ── Cloud Sync & Auth ─────────────────────────────────────────────────────────
 async function syncSessionsFromCloud() {
   try {
+    const user = await getUser();
+    if (!user) return;
+
+    // ローカルセッションをクラウドへ一括アップロード（未登録分も含む）
+    const localSessions = getSessions();
+    await Promise.all(localSessions.map(s => saveSessionToCloud(s).catch(() => {})));
+
+    // クラウドからプルしてマージ
     const cloudSessions = await getSessionsFromCloud();
     if (cloudSessions.length === 0) return;
-    const localSessions = getSessions();
     const map = new Map();
     [...localSessions, ...cloudSessions].forEach(s => map.set(s.sessionId, s));
     const merged = Array.from(map.values())
