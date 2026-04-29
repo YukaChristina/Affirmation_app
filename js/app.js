@@ -26,7 +26,8 @@ function navigateTo(screenId) {
 }
 
 // ── Home Screen ───────────────────────────────────────────────────────────────
-function initHome() {
+async function initHome() {
+  await syncSessionsFromCloud();
   const sessions = getSessions();
   const lastEl = document.getElementById('last-session-info');
   if (sessions.length > 0) {
@@ -168,6 +169,7 @@ async function startRecording() {
       const q = state.sessionQuestions[state.currentIndex];
       state.recordings[q.id] = blob;
       await saveRecording(q.id, state.sessionId, blob);
+      uploadRecording(q.id, state.sessionId, blob).catch(console.error);
       showRecordedState(q.id);
     };
 
@@ -282,6 +284,7 @@ async function completeSession() {
   };
 
   saveSession(sessionData);
+  saveSessionToCloud(sessionData).catch(console.error);
   localStorage.removeItem('affirmation_current_session');
 
   // Show complete screen
@@ -353,7 +356,8 @@ async function playbackQuestion(q) {
     state.playbackAudio = null;
   }
 
-  const blob = await getRecording(q.id, state.playbackSessionId);
+  let blob = await getRecording(q.id, state.playbackSessionId);
+  if (!blob) blob = await downloadRecording(q.id, state.playbackSessionId);
   if (!blob) return;
 
   const url = URL.createObjectURL(blob);
@@ -629,6 +633,63 @@ function speakQuestion() {
   }
 }
 
+// ── Cloud Sync & Auth ─────────────────────────────────────────────────────────
+async function syncSessionsFromCloud() {
+  try {
+    const cloudSessions = await getSessionsFromCloud();
+    if (cloudSessions.length === 0) return;
+    const localSessions = getSessions();
+    const map = new Map();
+    [...localSessions, ...cloudSessions].forEach(s => map.set(s.sessionId, s));
+    const merged = Array.from(map.values())
+      .sort((a, b) => a.sessionId.localeCompare(b.sessionId));
+    localStorage.setItem('affirmation_sessions', JSON.stringify(merged));
+  } catch (e) {
+    console.warn('Cloud sync skipped:', e);
+  }
+}
+
+async function handleLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  const errorEl = document.getElementById('login-error');
+  errorEl.textContent = '';
+  try {
+    await signIn(email, password);
+    navigateTo('home');
+    await initHome();
+  } catch (err) {
+    errorEl.textContent = 'ログインに失敗しました：' + (err.message || '');
+  }
+}
+
+async function handleSignup() {
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  const errorEl = document.getElementById('login-error');
+  errorEl.textContent = '';
+  if (password.length < 6) {
+    errorEl.textContent = 'パスワードは6文字以上で入力してください。';
+    return;
+  }
+  try {
+    const user = await signUp(email, password);
+    if (user) {
+      navigateTo('home');
+      await initHome();
+    } else {
+      errorEl.textContent = '登録メールを送信しました。メールを確認してください。';
+    }
+  } catch (err) {
+    errorEl.textContent = '登録に失敗しました：' + (err.message || '');
+  }
+}
+
+async function handleSignout() {
+  await signOut();
+  navigateTo('login');
+}
+
 // ── Question Manager ─────────────────────────────────────────────────────────
 const SECTION_NAMES = {
   'PART 1': '成功の理由について',
@@ -746,11 +807,14 @@ function resetToDefaultQuestions() {
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────────
-window.addEventListener('load', () => {
-  initHome();
-
-  // Service Worker
+window.addEventListener('load', async () => {
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js').catch(() => {});
   }
+  const user = await getUser();
+  if (user) {
+    navigateTo('home');
+    await initHome();
+  }
+  // If not logged in, screen-login is already active (default)
 });

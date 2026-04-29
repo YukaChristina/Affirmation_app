@@ -788,6 +788,82 @@ html, body {
   .play-controls { padding: 16px 20px; }
 }
 
+/* ── Login Screen ────────────────────────────────────────────────────────── */
+.login-body {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  background: linear-gradient(135deg, #F0EEFF 0%, #E8E4FF 100%);
+}
+
+.login-card {
+  background: white;
+  border-radius: var(--radius);
+  padding: 40px 32px;
+  width: 100%;
+  max-width: 360px;
+  box-shadow: 0 8px 40px rgba(107, 92, 231, 0.18);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.login-logo { font-size: 3rem; }
+
+.login-title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--purple), var(--mint));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.login-sub { font-size: 0.875rem; color: var(--text-sub); }
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.login-input {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px 16px;
+  font-size: 1rem;
+  font-family: inherit;
+  color: var(--text);
+  background: var(--bg);
+  transition: border-color 0.2s;
+  text-align: left;
+  width: 100%;
+}
+.login-input:focus { outline: none; border-color: var(--purple); }
+
+.login-error {
+  font-size: 0.8rem;
+  color: var(--danger);
+  min-height: 18px;
+  text-align: left;
+}
+
+.btn-login-sub {
+  background: none;
+  border: none;
+  color: var(--text-sub);
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 4px;
+  text-decoration: underline;
+  transition: color 0.2s;
+}
+.btn-login-sub:hover { color: var(--purple); }
+
 /* ── Home bottom actions ─────────────────────────────────────────────────── */
 .home-bottom-actions {
   display: flex;
