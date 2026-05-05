@@ -2,7 +2,7 @@
   "name": "Yuka Affirmation App",
   "short_name": "Affirmation",
   "description": "毎日のアファメーション習慣を支援するアプリ",
-  "start_url": "/",
+  "start_url": "./",
   "display": "standalone",
   "background_color": "#F8F7FF",
   "theme_color": "#6B5CE7",

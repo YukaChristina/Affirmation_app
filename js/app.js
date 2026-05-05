@@ -15,6 +15,9 @@ const state = {
   playbackIndex: 0,
   playbackSpeed: 1.0,
   playbackSessionId: null,
+  playbackSourceSessionId: null, // 録音元セッションID
+  playbackStartDate: null,
+  playbackStartTime: null,
   playbackQuestions: [],
 };
 
@@ -304,13 +307,19 @@ async function startPlaybackMode() {
   }
 
   const last = sessions[sessions.length - 1];
-  state.playbackSessionId = last.sessionId;
+  const now = new Date();
+
+  // 再生セッションは録音セッションとは別IDで作成
+  state.playbackSessionId = 'pb_' + Date.now().toString();
+  state.playbackSourceSessionId = last.sessionId;
+  state.playbackStartDate = formatDate(now);
+  state.playbackStartTime = formatTime(now);
   state.playbackIndex = 0;
   state.playbackSpeed = 1.0;
 
-  // Rebuild question list from saved session
+  // 録音セッションのquestionIdsをもとに現在の質問リストと同期
   state.playbackQuestions = (last.questionIds || last.completedQuestions)
-    .map(id => getQuestions().find(q => q.id === id))
+    .map(id => getQuestionById(id))
     .filter(Boolean);
 
   navigateTo('play');
@@ -318,13 +327,6 @@ async function startPlaybackMode() {
 }
 
 async function renderPlayback() {
-  if (state.playbackIndex >= state.playbackQuestions.length) {
-    // Done
-    navigateTo('home');
-    initHome();
-    return;
-  }
-
   const q = state.playbackQuestions[state.playbackIndex];
   const total = state.playbackQuestions.length;
 
@@ -335,12 +337,12 @@ async function renderPlayback() {
   document.getElementById('play-section').textContent = q.sectionName;
   document.getElementById('play-question').textContent = q.question;
 
-  // Session date
+  // 録音元セッションの日付を表示
   const sessions = getSessions();
-  const session = sessions.find(s => s.sessionId === state.playbackSessionId);
-  if (session) {
+  const sourceSession = sessions.find(s => s.sessionId === state.playbackSourceSessionId);
+  if (sourceSession) {
     document.getElementById('play-date').textContent =
-      `録音日：${session.date} ${session.startTime}`;
+      `録音日：${sourceSession.date} ${sourceSession.startTime}`;
   }
 
   document.getElementById('btn-play-prev').disabled = state.playbackIndex === 0;
@@ -356,9 +358,13 @@ async function playbackQuestion(q) {
     state.playbackAudio = null;
   }
 
-  let blob = await getRecording(q.id, state.playbackSessionId);
-  if (!blob) blob = await downloadRecording(q.id, state.playbackSessionId);
-  if (!blob) return;
+  let blob = await getRecording(q.id, state.playbackSourceSessionId);
+  if (!blob) blob = await downloadRecording(q.id, state.playbackSourceSessionId);
+  if (!blob) {
+    // 録音がない質問はスキップして自動で次へ
+    autoAdvancePlayback();
+    return;
+  }
 
   const url = URL.createObjectURL(blob);
   state.playbackAudio = new Audio(url);
@@ -369,8 +375,47 @@ async function playbackQuestion(q) {
   state.playbackAudio.onended = () => {
     URL.revokeObjectURL(url);
     document.getElementById('btn-play-pause').textContent = '▶';
+    autoAdvancePlayback();
   };
   state.playbackAudio.play();
+}
+
+function autoAdvancePlayback() {
+  if (state.playbackIndex < state.playbackQuestions.length - 1) {
+    state.playbackIndex++;
+    renderPlayback();
+  } else {
+    completePlaybackSession();
+  }
+}
+
+async function completePlaybackSession() {
+  if (state.playbackAudio) {
+    state.playbackAudio.pause();
+    state.playbackAudio = null;
+  }
+
+  const endTime = new Date();
+  const sessionData = {
+    sessionId: state.playbackSessionId,
+    date: state.playbackStartDate,
+    startTime: state.playbackStartTime,
+    endTime: formatTime(endTime),
+    mode: 'playback',
+    completedQuestions: state.playbackQuestions.map(q => q.id),
+    questionIds: state.playbackQuestions.map(q => q.id),
+    isCompleted: true,
+  };
+
+  saveSession(sessionData);
+  saveSessionToCloud(sessionData).catch(console.error);
+
+  // リセット（二重保存防止）
+  state.playbackSessionId = null;
+  state.playbackStartDate = null;
+
+  navigateTo('home');
+  initHome();
 }
 
 function togglePlayPause() {
@@ -409,8 +454,29 @@ function changeSpeed() {
 function stopPlayback() {
   if (state.playbackAudio) {
     state.playbackAudio.pause();
+    state.playbackAudio.onended = null;
     state.playbackAudio = null;
   }
+
+  // 未完了の場合のみ途中記録（completePlaybackSessionが呼ばれた後はIDがnull）
+  if (state.playbackSessionId && state.playbackStartDate) {
+    const now = new Date();
+    const sessionData = {
+      sessionId: state.playbackSessionId,
+      date: state.playbackStartDate,
+      startTime: state.playbackStartTime,
+      endTime: formatTime(now),
+      mode: 'playback',
+      completedQuestions: state.playbackQuestions.slice(0, state.playbackIndex).map(q => q.id),
+      questionIds: state.playbackQuestions.map(q => q.id),
+      isCompleted: false,
+    };
+    saveSession(sessionData);
+    saveSessionToCloud(sessionData).catch(console.error);
+    state.playbackSessionId = null;
+    state.playbackStartDate = null;
+  }
+
   navigateTo('home');
   initHome();
 }
@@ -813,11 +879,34 @@ function resetToDefaultQuestions() {
   renderQuestionManager();
 }
 
+// ── Historical Session Seeding ────────────────────────────────────────────────
+function insertHistoricalPlaybackSessions() {
+  const allIds = getQuestions().map(q => q.id);
+  const historical = [
+    { sessionId: 'historical_pb_20260503', date: '2026-05-03', startTime: '08:00', endTime: '08:00' },
+    { sessionId: 'historical_pb_20260504', date: '2026-05-04', startTime: '08:00', endTime: '08:00' },
+    { sessionId: 'historical_pb_20260505', date: '2026-05-05', startTime: '08:00', endTime: '08:00' },
+  ];
+  const existing = new Set(getSessions().map(s => s.sessionId));
+  historical.forEach(h => {
+    if (!existing.has(h.sessionId)) {
+      saveSession({
+        ...h,
+        mode: 'playback',
+        completedQuestions: allIds,
+        questionIds: allIds,
+        isCompleted: true,
+      });
+    }
+  });
+}
+
 // ── Init ──────────────────────────────────────────────────────────────────────
 window.addEventListener('load', async () => {
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js').catch(() => {});
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
   }
+  insertHistoricalPlaybackSessions();
   const user = await getUser();
   if (user) {
     navigateTo('home');

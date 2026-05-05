@@ -1,13 +1,13 @@
-const CACHE_NAME = 'affirmation-v9';
+const CACHE_NAME = 'affirmation-v10';
 const STATIC_ASSETS = [
-  '/',
-  '/index.html',
-  '/style.css',
-  '/js/questions.js',
-  '/js/db.js',
-  '/js/app.js',
-  '/manifest.json',
-  '/icons/icon.svg',
+  './',
+  './index.html',
+  './style.css',
+  './js/questions.js',
+  './js/db.js',
+  './js/app.js',
+  './manifest.json',
+  './icons/icon.svg',
 ];
 
 self.addEventListener('install', e => {

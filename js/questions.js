@@ -72,6 +72,11 @@ function getQuestions() {
   return QUESTIONS;
 }
 
+// カスタム質問にもデフォルト質問にも対応してIDで検索
+function getQuestionById(id) {
+  return getQuestions().find(q => q.id === id) || QUESTIONS.find(q => q.id === id);
+}
+
 function saveCustomQuestions(qs) {
   localStorage.setItem('affirmation_custom_questions', JSON.stringify(qs));
 }
