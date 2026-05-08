@@ -300,30 +300,40 @@ async function completeSession() {
 
 // ── Playback Mode ─────────────────────────────────────────────────────────────
 async function startPlaybackMode() {
-  const sessions = getSessions().filter(s => s.mode === 'recording' && s.isCompleted);
-  if (sessions.length === 0) {
+  const recordingSessions = getSessions().filter(s => s.mode === 'recording');
+  if (recordingSessions.length === 0) {
     alert('再生できる録音データがありません。まず録音モードで録音してください。');
     return;
   }
 
-  const last = sessions[sessions.length - 1];
   const now = new Date();
-
-  // 再生セッションは録音セッションとは別IDで作成
   state.playbackSessionId = 'pb_' + Date.now().toString();
-  state.playbackSourceSessionId = last.sessionId;
+  state.playbackSourceSessionId = null;
   state.playbackStartDate = formatDate(now);
   state.playbackStartTime = formatTime(now);
   state.playbackIndex = 0;
   state.playbackSpeed = 1.0;
 
-  // 録音セッションのquestionIdsをもとに現在の質問リストと同期
-  state.playbackQuestions = (last.questionIds || last.completedQuestions)
-    .map(id => getQuestionById(id))
-    .filter(Boolean);
+  // 質問管理の現在の内容をそのまま再生リストに使う（編集・並び順を反映）
+  state.playbackQuestions = getQuestions();
 
   navigateTo('play');
   renderPlayback();
+}
+
+// 全録音セッションを新しい順に横断してblobを探す
+async function findRecordingAcrossSessions(questionId) {
+  const sessions = getSessions()
+    .filter(s => s.mode === 'recording')
+    .sort((a, b) => b.sessionId.localeCompare(a.sessionId));
+
+  for (const session of sessions) {
+    let blob = await getRecording(questionId, session.sessionId);
+    if (blob) return blob;
+    blob = await downloadRecording(questionId, session.sessionId);
+    if (blob) return blob;
+  }
+  return null;
 }
 
 async function renderPlayback() {
@@ -337,13 +347,7 @@ async function renderPlayback() {
   document.getElementById('play-section').textContent = q.sectionName;
   document.getElementById('play-question').textContent = q.question;
 
-  // 録音元セッションの日付を表示
-  const sessions = getSessions();
-  const sourceSession = sessions.find(s => s.sessionId === state.playbackSourceSessionId);
-  if (sourceSession) {
-    document.getElementById('play-date').textContent =
-      `録音日：${sourceSession.date} ${sourceSession.startTime}`;
-  }
+  document.getElementById('play-date').textContent = '';
 
   document.getElementById('btn-play-prev').disabled = state.playbackIndex === 0;
   document.getElementById('btn-play-next').disabled = state.playbackIndex === total - 1;
@@ -358,10 +362,9 @@ async function playbackQuestion(q) {
     state.playbackAudio = null;
   }
 
-  let blob = await getRecording(q.id, state.playbackSourceSessionId);
-  if (!blob) blob = await downloadRecording(q.id, state.playbackSourceSessionId);
+  // 全録音セッションを横断してこの質問の録音を探す
+  const blob = await findRecordingAcrossSessions(q.id);
   if (!blob) {
-    // 録音がない質問はスキップして自動で次へ
     autoAdvancePlayback();
     return;
   }
@@ -562,8 +565,8 @@ function renderSessionList(sessions) {
     const card = document.createElement('div');
     card.className = 'session-card';
     const modeLabel = session.mode === 'recording' ? '🎙 録音' : '▶ 再生';
-    const statusLabel = session.isCompleted ? '完了' : '途中';
-    const statusClass = session.isCompleted ? 'status-complete' : 'status-partial';
+    const statusLabel = '完了';
+    const statusClass = 'status-complete';
 
     card.innerHTML = `
       <div class="session-card-header">
