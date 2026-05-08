@@ -38,7 +38,10 @@
       <h1>✨ Yuka Affirmation</h1>
       <div class="header-sub">未来の成功した自分になりきろう</div>
     </div>
-    <button class="btn-icon" onclick="handleSignout()">ログアウト</button>
+    <div style="display:flex;gap:8px">
+      <button class="btn-icon" onclick="openChangePasswordModal()">🔑</button>
+      <button class="btn-icon" onclick="handleSignout()">ログアウト</button>
+    </div>
   </header>
 
   <div class="home-body">
@@ -282,6 +285,26 @@
     <div class="modal-actions">
       <button class="btn-modal-cancel" onclick="closeQuestionModal()">キャンセル</button>
       <button class="btn-modal-save" onclick="saveQuestion()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- Password Change Modal -->
+<div id="modal-password" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeChangePasswordModal()">
+  <div class="modal-box">
+    <h3>パスワードを変更</h3>
+    <div class="modal-field">
+      <label>新しいパスワード</label>
+      <input type="password" id="new-password" class="login-input" placeholder="6文字以上" />
+    </div>
+    <div class="modal-field">
+      <label>確認（もう一度）</label>
+      <input type="password" id="new-password-confirm" class="login-input" placeholder="同じパスワードを入力" />
+    </div>
+    <p id="password-change-error" class="login-error"></p>
+    <div class="modal-actions">
+      <button class="btn-modal-cancel" onclick="closeChangePasswordModal()">キャンセル</button>
+      <button class="btn-modal-save" onclick="handleChangePassword()">変更する</button>
     </div>
   </div>
 </div>

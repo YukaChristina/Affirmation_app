@@ -763,6 +763,43 @@ async function handleSignout() {
   navigateTo('login');
 }
 
+// ── Password Change ───────────────────────────────────────────────────────────
+function openChangePasswordModal() {
+  document.getElementById('new-password').value = '';
+  document.getElementById('new-password-confirm').value = '';
+  document.getElementById('password-change-error').textContent = '';
+  document.getElementById('modal-password').style.display = 'flex';
+  document.getElementById('new-password').focus();
+}
+
+function closeChangePasswordModal() {
+  document.getElementById('modal-password').style.display = 'none';
+}
+
+async function handleChangePassword() {
+  const pw = document.getElementById('new-password').value;
+  const pw2 = document.getElementById('new-password-confirm').value;
+  const errEl = document.getElementById('password-change-error');
+  errEl.textContent = '';
+
+  if (pw.length < 6) {
+    errEl.textContent = 'パスワードは6文字以上で入力してください。';
+    return;
+  }
+  if (pw !== pw2) {
+    errEl.textContent = 'パスワードが一致していません。';
+    return;
+  }
+
+  try {
+    await updatePassword(pw);
+    closeChangePasswordModal();
+    alert('パスワードを変更しました。');
+  } catch (err) {
+    errEl.textContent = '変更に失敗しました：' + (err.message || '');
+  }
+}
+
 // ── Question Manager ─────────────────────────────────────────────────────────
 const SECTION_NAMES = {
   'PART 1': '成功の理由について',

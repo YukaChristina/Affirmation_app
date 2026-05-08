@@ -25,6 +25,11 @@ async function signOut() {
   await sb.auth.signOut();
 }
 
+async function updatePassword(newPassword) {
+  const { error } = await sb.auth.updateUser({ password: newPassword });
+  if (error) throw error;
+}
+
 // ── Sessions ──────────────────────────────────────────────────────────────────
 async function saveSessionToCloud(sessionData) {
   const user = await getUser();
