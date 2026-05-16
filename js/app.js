@@ -314,8 +314,18 @@ async function startPlaybackMode() {
   state.playbackIndex = 0;
   state.playbackSpeed = 1.0;
 
-  // 質問管理の現在の内容をそのまま再生リストに使う（編集・並び順を反映）
-  state.playbackQuestions = getQuestions();
+  // 最新録音セッションの questionIds で再生リストを組み立て、録音モードと一致させる
+  const latestSession = recordingSessions
+    .sort((a, b) => b.sessionId.localeCompare(a.sessionId))[0];
+  const sessionQuestionIds = latestSession.questionIds;
+  const allQuestions = getQuestions();
+  if (sessionQuestionIds && sessionQuestionIds.length > 0) {
+    state.playbackQuestions = sessionQuestionIds
+      .map(id => allQuestions.find(q => q.id === id))
+      .filter(Boolean);
+  } else {
+    state.playbackQuestions = allQuestions;
+  }
 
   navigateTo('play');
   renderPlayback();
